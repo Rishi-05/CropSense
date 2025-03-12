@@ -8,14 +8,13 @@ import os
 
 app = Flask(__name__)
 
-# Load the ML model and column names
 with open("models/crop_model.pkl", "rb") as f:
     final_model = pickle.load(f)
 
 with open("models/columns.json", "r") as f:
     columns = json.load(f)["d_col"]
 
-# Function to extract soil data from PDF
+# creating the function to extract soil data from the pdf
 def extract_soil_data(pdf_path):
     data = {
         "n": None, "p": None, "k": None, "ph": None,
@@ -44,7 +43,7 @@ def extract_soil_data(pdf_path):
             value = float(match.group(1))
             unit = match.group(2) if len(match.groups()) > 1 else None
 
-            if unit == "%":  # Convert % to Kg/ha if necessary
+            if unit == "%":  
                 value = (value * bulk_density * depth) / 100
 
             data[key] = value
@@ -80,32 +79,24 @@ def predict_from_pdf():
         pdf_path = os.path.join("uploads", file.filename)
         file.save(pdf_path)
 
-        # Extract soil data
         extracted_data = extract_soil_data(pdf_path)
 
-        # Replace missing values with default values (e.g., 0 or mean)
         for col in columns:
             if extracted_data[col] is None:
-                extracted_data[col] = 0  # You can change 0 to a mean/median value if needed
-
-        # Convert extracted data into a DataFrame
+                extracted_data[col] = 0 
         input_df = pd.DataFrame([extracted_data])
 
-        # Ensure columns match the model's expected format
         input_df = input_df[columns]
 
-        # Predict the crop
+        # now predicting the crop
         prediction = final_model.predict(input_df)
 
-        # Remove the saved PDF after processing
+        #removing the pdf after processing
         os.remove(pdf_path)
-
         return jsonify({"predicted_crop": prediction[0], "extracted_data": extracted_data})
-
     except Exception as e:
         return jsonify({"error": str(e)})
 
-
 if __name__ == "__main__":
-    os.makedirs("uploads", exist_ok=True)  # Ensure uploads folder exists
+    os.makedirs("uploads", exist_ok=True) 
     app.run(debug=True, port=5000)

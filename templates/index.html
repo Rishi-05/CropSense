@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crop Prediction from Soil Report</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: radial-gradient(circle at top left, #1b4332, #2d6a4f, #3a5a40, #582f0e);
+      color: #f1f1f1;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 650px;
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.8s ease;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 26px;
+      font-weight: bold;
+      color: #d8f3dc;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      border: 2px dashed #95d5b2;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #f1f1f1;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    input[type="file"]:hover {
+      border-color: #52b788;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: white;
+      background: linear-gradient(135deg, #2d6a4f, #95d5b2);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0px 4px 15px rgba(149, 213, 178, 0.6);
+    }
+
+    #result {
+      margin-top: 25px;
+      text-align: center;
+      padding: 15px;
+    }
+
+    #result h3 {
+      margin: 0 0 20px;
+      color: #b7e4c7;
+      font-size: 22px;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 15px;
+    }
+
+    .data-card {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, background 0.3s ease;
+    }
+
+    .data-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .data-key {
+      font-size: 14px;
+      color: #95d5b2;
+      margin-bottom: 8px;
+    }
+
+    .data-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #f1f1f1;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌱 Upload Soil Report PDF</h2>
+    <form id="upload-form" enctype="multipart/form-data">
+      <input type="file" id="file-input" name="file" accept=".pdf" required />
+      <button type="submit">Upload & Predict Crop</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("upload-form").onsubmit = async function (event) {
+      event.preventDefault();
+
+      let fileInput = document.getElementById("file-input");
+      if (!fileInput.files.length) {
+        alert("Please select a file first.");
+        return;
+      }
+
+      let formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      document.getElementById("result").innerHTML = "<p>⏳ Processing...</p>";
+
+      let response = await fetch("/predict_from_pdf", {
+        method: "POST",
+        body: formData
+      });
+
+      let result = await response.json();
+
+      if (result.error) {
+        document.getElementById("result").innerHTML = `<p style="color:red;">❌ Error: ${result.error}</p>`;
+      } else {
+        let extracted = result.extracted_data;
+        let cards = Object.entries(extracted).map(([key, value]) => `
+          <div class="data-card">
+            <div class="data-key">${key.toUpperCase()}</div>
+            <div class="data-value">${value !== null ? value : "—"}</div>
+          </div>
+        `).join("");
+
+        document.getElementById("result").innerHTML = `
+          <h3>🌾 Predicted Crop: <span style="color: #95d5b2;">${result.predicted_crop}</span></h3>
+          <div class="data-grid">${cards}</div>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>

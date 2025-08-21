@@ -190,7 +190,7 @@ def predict_from_pdf():
         if not file or file.filename == "":
             return jsonify({"error": "No file uploaded"}), 400
 
-        pdf_path = os.path.join("uploads", file.filename)
+        pdf_path = os.path.join("output", file.filename)
         file.save(pdf_path)
 
         extracted_data = extract_soil_data(pdf_path)
@@ -213,5 +213,5 @@ def predict_from_pdf():
 
 
 if __name__ == "__main__":
-    os.makedirs("uploads", exist_ok=True)
+    os.makedirs("output", exist_ok=True)
     app.run(debug=True, port=5000)
